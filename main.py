@@ -2,7 +2,8 @@ import pygame
 from geometry import get_init_points
 from constants import WIDTH, HEIGHT, MOVE_KEY_MAP, ROTATE_KEY_MAP, CW, ACW, MOVE, MOVE2LAYERS, ROTATE, OPPOSITE
 from constants import SAVE_POSITION, RESET_POSITION, SAVE_KEY_MAP
-from constants import F, B, L, R, U, D, COLORS
+from constants import F, B, L, R, U, D
+from utilities import RubikUtilities, RubikSolver
 from copy import deepcopy
 from geometry import z_orientation, xy_projection
 from functools import reduce
@@ -15,6 +16,9 @@ def init_mouse_drag(points):
 
     def handle_mouse_drag(event):
         nonlocal dragging
+        if not any(pygame.mouse.get_pressed()):
+            dragging = False
+
         if event.type == pygame.MOUSEBUTTONUP:
             dragging = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -244,7 +248,8 @@ def mainloop():
     in_progress, init_move, animate = animation(rubik, centers, edges, corners)
     handle_key_event = init_handle_keys(init_move, save_positions, reset_positions)
     print(rubik)
-
+    RubikUtilities.shuffle(rubik, 150)
+    RubikSolver.solve(rubik)
     while run:
         clock.tick(60)
         for event in pygame.event.get():
@@ -259,6 +264,9 @@ def mainloop():
             animate()
         else:
             handle_rotation_keys(points)
+
+            # direction, face = RubikUtilities.random_move()
+            # init_move(direction, face, MOVE)
 
         win.fill((128, 128, 128))
         draw_orientation(win, rubik)

@@ -64,6 +64,15 @@ OPPOSITE = {
     D: U
 }
 
+NEIGHBORS = {
+    F: (L, R, U, D),
+    B: (L, R, U, D),
+    L: (U, D, F, B),
+    R: (U, D, F, B),
+    U: (L, R, F, B),
+    D: (L, R, F, B),
+}
+
 MOVE_KEY_MAP = {
     pygame.K_f: F,
     pygame.K_b: B,
@@ -90,3 +99,8 @@ SAVE_KEY_MAP = {
     pygame.K_s: SAVE_POSITION,
     pygame.K_i: RESET_POSITION,
 }
+
+ALL_MOVES = [
+    (CW, F), (CW, B), (CW, R), (CW, L), (CW, U), (CW, D),
+    (ACW, F), (ACW, B), (ACW, R), (ACW, L), (ACW, U), (ACW, D)
+]
