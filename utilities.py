@@ -32,59 +32,97 @@ class RubikUtilities:
             return False
         return True
 
+    @staticmethod
+    def is_bottom_cross_solved(rubik, bottom):
+        bottom_color = rubik.get_colors(positions=bottom)
+        bottom_edges = list(filter(lambda _edge: bottom_color in _edge.colors,
+                                   (rubik.get_edge(positions=positions) for positions in EDGES)))
+        print(bottom_edges, bottom_color)
+        for edge in bottom_edges:
+            if not edge.colors == tuple(rubik.get_colors(f) for f in edge.positions):
+                return False
+        return True
 
-ORDER = [R, L, U, D, F, B]
-o = lambda *f: tuple(sorted(f, key=lambda i: ORDER.index(i)))
+    @staticmethod
+    def is_bottom_layer_solved(rubik, bottom):
+        if not RubikUtilities.is_bottom_cross_solved(rubik, bottom):
+            return False
+        bottom_color = rubik.get_colors(positions=bottom)
+        bottom_corners = list(filter(lambda _corner: bottom_color in _corner.colors,
+                                   (rubik.get_corner(positions=positions) for positions in CORNERS)))
+        for corner in bottom_corners:
+            if not corner.colors == tuple(rubik.get_colors(f) for f in corner.positions):
+                return False
+        return True
+
+    @staticmethod
+    def is_middle_layer_solved(rubik, bottom):
+        if not RubikUtilities.is_bottom_layer_solved(rubik, bottom):
+            return False
+        bottom_color = rubik.get_colors(bottom)
+        top_color = rubik.get_colors(OPPOSITE[bottom])
+        for edge in (rubik.get_edge(positions=positions) for positions in EDGES):
+            if bottom_color not in edge.colors and top_color not in edge.colors:
+                if not edge.colors == tuple(rubik.get_colors(f) for f in edge.positions):
+                    return False
+        return True
 
 
 class RubikSolver:
     @staticmethod
     def make_bottom_cross(rubik, base=D):
-        # Makes a cross at the bottom (down face).
-        b_c = rubik.get_center(position=base)
+        # Makes a cross at the 'base' side.
+        # Assumed it is the down-side for naming variables with respect to it
+        up_side = OPPOSITE[base]
         nbr_c = [rubik.get_center(position=f) for f in NEIGHBORS[base]]
-        cross_edges = [rubik.get_edge(colors=(b_c.color, c.color)) for c in nbr_c]
+        # Get the edges that make up the cross.
+        cross_edges = [rubik.get_edge(colors=(rubik.get_colors(positions=base), c.color)) for c in nbr_c]
         for index, edge in enumerate(cross_edges):
-            # TODO: Dont do these steps if already in place.
-            # Bring the cross edges to top
+            if edge.colors == tuple(map(rubik.get_colors, edge.positions)):
+                # if edge already in place, move on to the next edge.
+                continue
+
+            # STEP 1: Bring the cross edges to top
             if base in edge.positions:
+                # if it is no the bottom, rotate twice the corresponding side to bring in on top.
                 face = edge.positions[0 if edge.positions[1] == base else 1]
                 rubik.move(CW, face, 2)
 
-            if OPPOSITE[base] not in edge.positions:
+            if up_side not in edge.positions:
+                # if it is in the middle layer, bring it on top without affecting the bottom pieces
+                # as they may already be aligned.
                 top_rotated = False
                 face = edge.positions[0]
                 for _ in range(4):
                     rubik.move(CW, face)
-                    if OPPOSITE[base] in edge.positions and not top_rotated:
-                        rubik.move(CW, OPPOSITE[base])
+                    if up_side in edge.positions and not top_rotated:
+                        rubik.move(CW, up_side)
                         top_rotated = True
 
-            # Move it over right place
+            # STEP 2: Move the edge right above where it needs to be by rotating the top.
             while nbr_c[index].position not in edge.positions:
-                rubik.move(CW, OPPOSITE[base])
+                rubik.move(CW, up_side)
 
-            # Now right above two cases.
+            # STEP 3: Move it to the right place.
+            # Ensure the edge has right orientation after moving.
             if (nbr_c[index].color == edge.colors[0] and nbr_c[index].position == edge.positions[0]) or \
                     (nbr_c[index].color == edge.colors[1] and nbr_c[index].position == edge.positions[1]):
-                # If right orientation
+                # If right orientation, simply rotating twice is enough.
                 rubik.move(CW, nbr_c[index].position, 2)
             else:
-                rubik.move(CW, OPPOSITE[base])
-                face = edge.positions[0 if edge.positions[1] == OPPOSITE[base] else 1]
+                # Otherwise, do the following.
+                rubik.move(CW, up_side)
+                face = edge.positions[0 if edge.positions[1] == up_side else 1]
                 rubik.move(CW, face)
                 rubik.move(ACW, nbr_c[index].position)
                 rubik.move(ACW, face)
 
-        for index, edge in enumerate(cross_edges):
-            for position, color in zip(edge.positions, edge.colors):
-                assert rubik.get_center(position=position).color == color
+        # Post Condition: Bottom cross must be done.
+        assert RubikUtilities.is_bottom_cross_solved(rubik, base)
 
     @staticmethod
     def make_bottom_corners(rubik, base=D):
-        b_c = rubik.get_center(position=base)
-        nbr_c = [rubik.get_center(position=f) for f in NEIGHBORS[base]]
-        corners = [rubik.get_corner(colors=tuple(rubik.get_colors(f) for f in c)) for c in CORNERS if base in c]
+        corners = [rubik.get_corner(colors=tuple(map(rubik.get_colors, c))) for c in CORNERS if base in c]
         for corner in corners:
             # First move the corner to top later.
             if base in corner.positions:
@@ -109,7 +147,7 @@ class RubikSolver:
                 rubik.move(CW, OPPOSITE[base])
             # Now put it in place.
             face = None
-            while corner.colors != tuple(rubik.get_colors(p) for p in corner.positions):
+            while corner.colors != tuple(map(rubik.get_colors, corner.positions)):
                 positions = corner.positions
                 rubik.move(CW, OPPOSITE[base])
                 if face is None:
@@ -118,7 +156,7 @@ class RubikSolver:
                 rubik.move(ACW, OPPOSITE[base])
                 rubik.move(ACW, face)
         for corner in corners:
-            assert corner.colors == tuple(rubik.get_colors(p) for p in corner.positions)
+            assert corner.colors == tuple(map(rubik.get_colors, corner.positions))
 
     @staticmethod
     def solve_middle_layer(rubik, base=D):
@@ -393,7 +431,7 @@ class RubikSolver:
                 rubik.move(CW, up_side)
 
             # Apply algorithm till corner oriented.
-            while not(up_side in corner.positions and corner.colors[corner.positions.index(up_side)] == up_color):
+            while not (up_side in corner.positions and corner.colors[corner.positions.index(up_side)] == up_color):
                 rubik.move(ACW, right_side)
                 rubik.move(ACW, down_side)
                 rubik.move(CW, right_side)
