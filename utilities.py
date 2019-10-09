@@ -158,7 +158,7 @@ class RubikSolver:
             # Make sure that the edge is on top.
             # If not push any other available edge to occupy its place
             if up_side not in edge.positions:
-                print('GETTING OUT AN EDGE.')
+                # get the edge out
                 # any side of the edge
                 some_face = edge.positions[0]
                 other_face = edge.positions[1]
@@ -299,7 +299,6 @@ class RubikSolver:
             # Aligned edges in opposite to each other.
             # apply algorithm to convert it into L pattern
             # any side would do for algorithm orientation not required
-            print('Converting OPPOSITES TO L')
             algorithm(edge1_side, up_side)
 
         # Update the aligned top edges in case conversion took place.
@@ -342,7 +341,6 @@ class RubikSolver:
         def aligned_top_corners():
             return list(filter(lambda cnr: set(cnr.colors) == set(rubik.get_colors(f) for f in cnr.positions), corners))
 
-        # print(aligned_top_corners())
         if len(aligned_top_corners()) == 0:
             # Simply apply the algorithm.
             # Then one of them will auto align
@@ -351,7 +349,6 @@ class RubikSolver:
             algorithm(left_side, right_side, up_side)
 
         while len(aligned_top_corners()) == 1:
-            # print(' WHILE LOOP:', aligned_top_corners())
             aligned_corner = aligned_top_corners()[0]
             side1, side2 = list(filter(lambda f: f != up_side, aligned_corner.positions))
             rubik.move(CW, up_side)
@@ -361,51 +358,49 @@ class RubikSolver:
 
             algorithm(left_side, right_side, up_side)
 
-        # print(aligned_top_corners())
         assert len(aligned_top_corners()) == 4
 
     @staticmethod
     def solve_orient_top_corners(rubik, base=D):
-        def algorithm(right, down):
-            # Algorithm: R' D' R D
-            rubik.move(ACW, right)
-            rubik.move(ACW, down)
-            rubik.move(CW, right)
-            rubik.move(CW, down)
-
         up_side = OPPOSITE[base]
         up_color = rubik.get_colors(up_side)
+        down_side = base
         corners = list(filter(lambda cnr: up_color in cnr.colors, [rubik.get_corner(positions=c) for c in CORNERS]))
-        non_oriented_top_corners = lambda: list(
-            filter(lambda cnr: cnr.colors != tuple(rubik.get_colors(f) for f in cnr.positions), corners))
-        if not non_oriented_top_corners():
+
+        def require_orientation():
+            return list(filter(lambda cnr: cnr.colors != tuple(rubik.get_colors(f) for f in cnr.positions), corners))
+
+        if not require_orientation():
             # If all are already oriented
             return
-        chosen_position = non_oriented_top_corners()[-1].positions
+
+        # chose a top position to perform algorithm at.
+        chosen_corner_index = 0
+        corners_to_rotate = require_orientation()
+        chosen_position = corners_to_rotate[chosen_corner_index].positions
 
         # Now identify the right side.
         side1, side2 = list(filter(lambda f: f != up_side, chosen_position))
         rubik.move(CW, up_side)
-        right_side = side1 if side1 in chosen_position else side2
+        # After rotation (destroys alignment) so  can't use require_orientation
+        right_side = side2 if side1 in corners_to_rotate[chosen_corner_index].positions else side1
         rubik.move(ACW, up_side)
-        print('RIGHT SIDE:', right_side, chosen_position, up_side, base)
-        print('NONE ORIENTED TOP CORNERS:', non_oriented_top_corners())
-        non_oriented_corners = non_oriented_top_corners()
-        for index, corner in enumerate(non_oriented_corners):
-            # Rotate till corner in chosen location
-            print(index, 'CORNER:', corner)
-            count = 0
+
+        # using reversed so that top layer is aligned after algorithm (as the chosen_corner_index = 0)
+        for corner in reversed(require_orientation()):
+            # rotate to move it to right place.
             while corner.positions != chosen_position:
-                count += 1
-                print(index, 'ROTATING TOP:', corner.positions, chosen_position)
                 rubik.move(CW, up_side)
 
-            while up_side not in corner.positions or corner.colors[corner.positions.index(up_side)] != up_color:
-                print('CORNER:', count, index, corner, chosen_position, right_side, base, non_oriented_corners)
-                algorithm(right_side, base)
+            # Apply algorithm till corner oriented.
+            while not(up_side in corner.positions and corner.colors[corner.positions.index(up_side)] == up_color):
+                rubik.move(ACW, right_side)
+                rubik.move(ACW, down_side)
+                rubik.move(CW, right_side)
+                rubik.move(CW, down_side)
 
-        # Now only top layer must be mis-aligned.
-        assert not non_oriented_top_corners()
+        # no top corner must now require any changes.
+        assert not require_orientation()
 
     @staticmethod
     def solve_top_layer(rubik, base=D):
