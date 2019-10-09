@@ -88,6 +88,15 @@ ROTATE_KEY_MAP = {
     pygame.K_z: F,
 }
 
+SHUFFLE = 'SHUFFLE'
+NEXT_STEP = 'NEXT_STEP'
+SOLVE = 'SOLVE'
+FUNCTIONAL_KEY_MAP = {
+    pygame.K_h: SHUFFLE,
+    pygame.K_j: NEXT_STEP,
+    pygame.K_k: SOLVE,
+}
+
 ROTATE = 'ROTATE'
 MOVE = 'MOVE'
 MOVE2LAYERS = 'MOVE2LAYERS'
