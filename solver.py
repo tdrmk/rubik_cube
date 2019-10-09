@@ -411,3 +411,23 @@ class RubikSolver:
     @staticmethod
     def solve_bottom_layer(rubik, base=D):
         return chain(RubikSolver.solve_bottom_cross(rubik, base), RubikSolver.solve_bottom_corners(rubik, base))
+
+    @staticmethod
+    def solve_next_step(rubik, base=D):
+        """
+            This method identifies the current stage the cube is solved to, then solves it to the next stage.
+        """
+        if not RubikUtilities.is_bottom_cross_solved(rubik, base):
+            return RubikSolver.solve_bottom_cross(rubik, base)
+        elif not RubikUtilities.is_bottom_layer_solved(rubik, base):
+            return RubikSolver.solve_bottom_corners(rubik, base)
+        elif not RubikUtilities.is_middle_layer_solved(rubik, base):
+            return RubikSolver.solve_middle_layer(rubik, base)
+        elif not RubikUtilities.is_top_cross_solved(rubik, base):
+            return RubikSolver.solve_top_cross(rubik, base)
+        elif not RubikUtilities.is_top_edges_solved(rubik, base):
+            return RubikSolver.solve_top_edges(rubik, base)
+        elif not RubikUtilities.is_positioned_top_corners(rubik, base):
+            return RubikSolver.solve_position_top_corners(rubik, base)
+        elif not RubikUtilities.is_oriented_top_corners(rubik, base):
+            return RubikSolver.solve_orient_top_corners(rubik, base)
