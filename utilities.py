@@ -1,6 +1,6 @@
 from constants import ALL_MOVES
 from constants import CENTERS, EDGES, CORNERS
-from constants import F, B, L, R, U, D, CW, ACW
+from constants import D, CW, ACW
 from constants import NEIGHBORS, OPPOSITE
 from random import choice
 
@@ -64,6 +64,54 @@ class RubikUtilities:
         for edge in (rubik.get_edge(positions=positions) for positions in EDGES):
             if bottom_color not in edge.colors and top_color not in edge.colors:
                 if not edge.colors == tuple(rubik.get_colors(f) for f in edge.positions):
+                    return False
+        return True
+
+    @staticmethod
+    def is_top_cross_solved(rubik, bottom):
+        if not RubikUtilities.is_middle_layer_solved(rubik, bottom):
+            return False
+        top_side = OPPOSITE[bottom]
+        top_color = rubik.get_colors(top_side)
+        for edge in (rubik.get_edge(positions=positions) for positions in EDGES):
+            if top_color in edge.colors:
+                if not edge.colors[edge.positions.index(top_side)] == top_color:
+                    return False
+
+        return True
+
+    @staticmethod
+    def is_top_edges_solved(rubik, bottom):
+        if not RubikUtilities.is_top_cross_solved(rubik, bottom):
+            return False
+        top_color = rubik.get_colors(OPPOSITE[bottom])
+        for edge in (rubik.get_edge(positions=positions) for positions in EDGES):
+            if top_color in edge.colors:
+                if not edge.colors == tuple(map(rubik.get_colors, edge.positions)):
+                    return False
+        return True
+
+    @staticmethod
+    def is_positioned_top_corners(rubik, bottom):
+        if not RubikUtilities.is_top_edges_solved(rubik, bottom):
+            return False
+        top_color = rubik.get_colors(OPPOSITE[bottom])
+        for corner in (rubik.get_corner(positions=positions) for positions in CORNERS):
+            if top_color in corner.colors:
+                if not set(corner.colors) == set(map(rubik.get_colors, corner.positions)):
+                    return False
+        return True
+
+    @staticmethod
+    def is_oriented_top_corners(rubik, bottom):
+        # This is same as asking if rubik's cube is solved.
+        # Use the is_solved method as it is more efficient.
+        if not RubikUtilities.is_top_edges_solved(rubik, bottom):
+            return False
+        top_color = rubik.get_colors(OPPOSITE[bottom])
+        for corner in (rubik.get_corner(positions=positions) for positions in CORNERS):
+            if top_color in corner.colors:
+                if not corner.colors == tuple(map(rubik.get_colors, corner.positions)):
                     return False
         return True
 
@@ -196,6 +244,9 @@ class RubikSolver:
             # Make sure that the edge is on top.
             # If not push any other available edge to occupy its place
             if up_side not in edge.positions:
+                # may be possible it is already in place.
+                if edge.colors == tuple(rubik.get_colors(f) for f in edge.positions):
+                    continue
                 # get the edge out
                 # any side of the edge
                 some_face = edge.positions[0]
