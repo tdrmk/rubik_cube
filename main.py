@@ -2,8 +2,10 @@ import pygame
 from geometry import get_init_points
 from constants import WIDTH, HEIGHT, MOVE_KEY_MAP, ROTATE_KEY_MAP, CW, ACW, MOVE, MOVE2LAYERS, ROTATE, OPPOSITE
 from constants import SAVE_POSITION, RESET_POSITION, SAVE_KEY_MAP
+from constants import FUNCTIONAL_KEY_MAP, SOLVE, NEXT_STEP, SHUFFLE
 from constants import F, B, L, R, U, D
-from utilities import RubikUtilities, RubikSolver
+from utilities import RubikUtilities
+from solver import RubikSolver
 from copy import deepcopy
 from geometry import z_orientation, xy_projection
 from functools import reduce
@@ -141,6 +143,7 @@ def moving_points_on_rotation(face, action, centers, edges, corners):
 
 def animation(rubik, centers, edges, corners):
     # Implements the animation for move.
+    # Also completes the move by applying it on the rubik's after animation is complete.
     running = False
     step_angle = 5
     current_angle = 0
@@ -235,6 +238,58 @@ def handle_rotation_keys(points):
             p.rotate_z_ip(-1)
 
 
+def shuffle_generator():
+    for _ in range(50):
+        yield RubikUtilities.random_move()
+
+
+def init_functional_keys(rubik, init_move):
+    def handle_functional_keys(event):
+        if event.type == pygame.KEYDOWN and event.key in FUNCTIONAL_KEY_MAP:
+            keys = pygame.key.get_pressed()
+            shift_pressed = keys[pygame.K_RSHIFT] or keys[pygame.K_LSHIFT]
+            if not shift_pressed:
+                if FUNCTIONAL_KEY_MAP[event.key] == SHUFFLE:
+                    RubikUtilities.shuffle(rubik, 50)
+                elif FUNCTIONAL_KEY_MAP[event.key] == NEXT_STEP:
+                    for direction, face in RubikSolver.solve_next_step(rubik, D):
+                        rubik.move(direction, face)
+                elif FUNCTIONAL_KEY_MAP[event.key] == SOLVE:
+                    for direction, face in RubikSolver.solve(rubik, D):
+                        rubik.move(direction, face)
+            else:
+                init_function(FUNCTIONAL_KEY_MAP[event.key])
+
+    running = False
+    generator = ()
+
+    def init_function(func):
+        nonlocal running, generator
+        if func == SHUFFLE:
+            running = True
+            generator = shuffle_generator()
+        elif func == NEXT_STEP:
+            running = True
+            generator = RubikSolver.solve_next_step(rubik, D)
+        elif func == SOLVE:
+            running = True
+            generator = RubikSolver.solve(rubik, D)
+
+    def continue_function():
+        nonlocal running
+        assert running
+        try:
+            direction, face = next(generator)
+            init_move(direction, face, MOVE)
+        except StopIteration:
+            running = False
+
+    def in_progress():
+        return running
+
+    return handle_functional_keys, in_progress, continue_function
+
+
 def mainloop():
     pygame.init()
     clock = pygame.time.Clock()
@@ -245,11 +300,10 @@ def mainloop():
     points, centers, edges, corners = get_init_points()
     save_positions, reset_positions = handle_save_points(points)
     handle_mouse_drag = init_mouse_drag(points)
-    in_progress, init_move, animate = animation(rubik, centers, edges, corners)
+    in_progress_animation, init_move, animate = animation(rubik, centers, edges, corners)
+    handle_functional_keys, in_progress_function, continue_function = init_functional_keys(rubik, init_move)
     handle_key_event = init_handle_keys(init_move, save_positions, reset_positions)
-    print(rubik)
-    RubikUtilities.shuffle(rubik, 150)
-    RubikSolver.solve(rubik)
+
     while run:
         clock.tick(60)
         for event in pygame.event.get():
@@ -257,16 +311,16 @@ def mainloop():
                     (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE) or \
                     (event.type == pygame.KEYDOWN and event.key == pygame.K_q):
                 run = False
-            if not in_progress():
-                handle_key_event(event)
+            if not in_progress_animation() and not in_progress_function():
                 handle_mouse_drag(event)
-        if in_progress():
+                handle_key_event(event)
+                handle_functional_keys(event)
+        if in_progress_animation():
             animate()
+        elif in_progress_function():
+            continue_function()
         else:
             handle_rotation_keys(points)
-
-            # direction, face = RubikUtilities.random_move()
-            # init_move(direction, face, MOVE)
 
         win.fill((128, 128, 128))
         draw_orientation(win, rubik)
