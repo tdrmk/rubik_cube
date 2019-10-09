@@ -113,3 +113,6 @@ ALL_MOVES = [
     (CW, F), (CW, B), (CW, R), (CW, L), (CW, U), (CW, D),
     (ACW, F), (ACW, B), (ACW, R), (ACW, L), (ACW, U), (ACW, D)
 ]
+
+
+ROTATIONAL_SPEED = 5

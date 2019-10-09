@@ -4,6 +4,7 @@ from constants import WIDTH, HEIGHT, MOVE_KEY_MAP, ROTATE_KEY_MAP, CW, ACW, MOVE
 from constants import SAVE_POSITION, RESET_POSITION, SAVE_KEY_MAP
 from constants import FUNCTIONAL_KEY_MAP, SOLVE, NEXT_STEP, SHUFFLE
 from constants import F, B, L, R, U, D
+from constants import ROTATIONAL_SPEED
 from utilities import RubikUtilities
 from solver import RubikSolver
 from copy import deepcopy
@@ -220,22 +221,22 @@ def handle_rotation_keys(points):
     keys = pygame.key.get_pressed()
     if keys[pygame.K_UP]:
         for p in points:
-            p.rotate_x_ip(-1)
+            p.rotate_x_ip(-ROTATIONAL_SPEED)
     if keys[pygame.K_DOWN]:
         for p in points:
-            p.rotate_x_ip(1)
+            p.rotate_x_ip(ROTATIONAL_SPEED)
     if keys[pygame.K_LEFT]:
         for p in points:
-            p.rotate_y_ip(-1)
+            p.rotate_y_ip(-ROTATIONAL_SPEED)
     if keys[pygame.K_RIGHT]:
         for p in points:
-            p.rotate_y_ip(1)
+            p.rotate_y_ip(ROTATIONAL_SPEED)
     if keys[pygame.K_LEFTBRACKET]:
         for p in points:
-            p.rotate_z_ip(1)
+            p.rotate_z_ip(ROTATIONAL_SPEED)
     if keys[pygame.K_RIGHTBRACKET]:
         for p in points:
-            p.rotate_z_ip(-1)
+            p.rotate_z_ip(-ROTATIONAL_SPEED)
 
 
 def shuffle_generator():
