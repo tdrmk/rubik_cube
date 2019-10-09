@@ -431,3 +431,4 @@ class RubikSolver:
             return RubikSolver.solve_position_top_corners(rubik, base)
         elif not RubikUtilities.is_oriented_top_corners(rubik, base):
             return RubikSolver.solve_orient_top_corners(rubik, base)
+        return ()
