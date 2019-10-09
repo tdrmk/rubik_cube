@@ -37,7 +37,6 @@ class RubikUtilities:
         bottom_color = rubik.get_colors(positions=bottom)
         bottom_edges = list(filter(lambda _edge: bottom_color in _edge.colors,
                                    (rubik.get_edge(positions=positions) for positions in EDGES)))
-        print(bottom_edges, bottom_color)
         for edge in bottom_edges:
             if not edge.colors == tuple(rubik.get_colors(f) for f in edge.positions):
                 return False
