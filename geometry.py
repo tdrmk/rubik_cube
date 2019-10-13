@@ -97,6 +97,18 @@ def z_orientation(surf):
     return Vector3.cross(surf[1] - surf[0], surf[2] - surf[1]).z
 
 
+def perspective_projection(pt):
+    # Assuming camera has orientation along -z axis to easy calculations.
+    # Thus the display surface is perpendicular to z-axis
+    # display_surface_distance is the distance between camera and the display surface
+    # https://en.wikipedia.org/wiki/3D_projection#Perspective_projection
+    camera = Vector3(0, 0, 6)
+    display_surface_distance = 0.2
+    projected_point = (pt - camera) * display_surface_distance/ (camera.z - pt.z)
+    # Return the point after normalizing
+    return projected_point * camera.z / display_surface_distance
+
 def xy_projection(surf):
-    return tuple(Vector2(pt.x * SCALE.x, -pt.y * SCALE.y) + OFFSET for pt in surf)
+    perspective_points = tuple(map(perspective_projection, surf))
+    return tuple(Vector2(pt.x * SCALE.x, -pt.y * SCALE.y) + OFFSET for pt in perspective_points)
 
